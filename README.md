@@ -45,7 +45,7 @@ Transcript → Spring Boot Backend → Python NLP Engine → Transparency Score 
 
 * React
 * Tailwind CSS
-
+## Designed for SEC filings; SEBI/BSE integration planned as future enhancement.
 ## Status
 
 🚧 Under Development
