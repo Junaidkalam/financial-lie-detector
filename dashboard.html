@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financial Lie Detector</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+    :root {
+      --bg: #080b10;
+      --surface: #0e1420;
+      --surface2: #141c2e;
+      --border: #1c2a40;
+      --accent: #00e5a0;
+      --accent2: #0066ff;
+      --warn: #ff4d6d;
+      --yellow: #ffd166;
+      --text: #e2e8f0;
+      --text-dim: #4a6080;
+      --text-mid: #8899aa;
+      --sans: 'Space Grotesk', sans-serif;
+      --mono: 'Space Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+              linear-gradient(rgba(0,229,160,0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0,229,160,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Header */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 20px 48px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(8,11,16,0.9);
+      backdrop-filter: blur(12px);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 32px;
+      height: 32px;
+      border: 1.5px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .logo-icon::after {
+      content: '';
+      width: 12px;
+      height: 12px;
+      background: var(--accent);
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+      position: absolute;
+    }
+
+    .logo h1 {
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.06em;
+    }
+
+    .logo h1 span { color: var(--accent); }
+
+    .header-tag {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+    }
+
+    /* Hero */
+    .hero {
+      position: relative;
+      z-index: 1;
+      padding: 72px 48px 56px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 24px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    .hero h2 {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1.1;
+      color: #fff;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .hero h2 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: var(--text-mid);
+      font-weight: 300;
+      max-width: 520px;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    /* Search */
+    .search-container {
+      display: flex;
+      gap: 0;
+      max-width: 560px;
+      position: relative;
+    }
+
+    .search-container::before {
+      content: 'TICKER';
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      pointer-events: none;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-right: none;
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 700;
+      padding: 18px 20px 18px 80px;
+      outline: none;
+      letter-spacing: 0.12em;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    input[type="text"]::placeholder {
+      color: var(--border);
+      font-weight: 400;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      background: var(--surface2);
+    }
+
+    .analyze-btn {
+      background: var(--accent);
+      color: #080b10;
+      border: none;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 18px 28px;
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      transition: all 0.2s;
+      white-space: nowrap;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .analyze-btn:hover { background: #00ffb3; }
+    .analyze-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .analyze-btn.loading::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 2px;
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      animation: loading 1.5s ease-in-out infinite;
+    }
+
+    @keyframes loading {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    /* Status */
+    .status-bar {
+      margin-top: 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      min-height: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-bar.error { color: var(--warn); }
+    .status-bar.success { color: var(--accent); }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Main content */
+    .content {
+      position: relative;
+      z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 48px 80px;
+    }
+
+    /* Result card */
+    .result-card {
+      display: none;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      margin-bottom: 24px;
+      animation: slideIn 0.4s ease;
+    }
+
+    .result-card.visible { display: block; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-top {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 40px;
+      padding: 36px 40px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ticker-display {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .ticker-badge {
+      background: var(--accent2);
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 12px;
+      letter-spacing: 0.1em;
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .ticker-info h3 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .ticker-info p {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 0.06em;
+    }
+
+    /* Gauge */
+    .gauge-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .gauge {
+      position: relative;
+      width: 140px;
+      height: 80px;
+      overflow: hidden;
+    }
+
+    .gauge svg {
+      width: 140px;
+      height: 140px;
+      margin-top: -70px;
+      transform: rotate(0deg);
+    }
+
+    .gauge-track {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 12;
+      stroke-linecap: round;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke-width: 12;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      transform-origin: center;
+    }
+
+    .gauge-score {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--mono);
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .gauge-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .verdict-chip {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border: 1px solid currentColor;
+      text-align: center;
+    }
+
+    /* Metrics strip */
+    .metrics-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .metric-cell {
+      padding: 28px 40px;
+      border-right: 1px solid var(--border);
+      position: relative;
+    }
+
+    .metric-cell:last-child { border-right: none; }
+
+    .metric-cell::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 40px;
+      width: 32px;
+      height: 2px;
+    }
+
+    .metric-cell.hedge::before { background: var(--warn); }
+    .metric-cell.passive::before { background: var(--yellow); }
+    .metric-cell.sentiment::before { background: var(--accent); }
+
+    .metric-num {
+      font-family: var(--mono);
+      font-size: 40px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .metric-cell.hedge .metric-num { color: var(--warn); }
+    .metric-cell.passive .metric-num { color: var(--yellow); }
+    .metric-cell.sentiment .metric-num { color: var(--accent); }
+
+    .metric-name {
+      font-size: 12px;
+      color: var(--text-mid);
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .metric-desc {
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+
+    /* Chart */
+    .chart-card {
+      display: none;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      animation: slideIn 0.4s ease 0.1s both;
+    }
+
+    .chart-card.visible { display: block; }
+
+    .chart-header {
+      padding: 24px 40px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chart-title {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-mid);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .chart-count {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .chart-body {
+      padding: 32px 40px;
+    }
+
+    /* Scan line effect on hover */
+    .result-card:hover,
+    .chart-card:hover {
+      border-color: rgba(0,229,160,0.2);
+      transition: border-color 0.3s;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"></div>
+    <h1>FINANCIAL <span>LIE</span> DETECTOR</h1>
+  </div>
+  <div class="header-tag">SEC 10-Q NLP ANALYSIS</div>
+</header>
+
+<div class="hero">
+  <div class="hero-eyebrow">Powered by SEC EDGAR + spaCy + VADER</div>
+  <h2>How transparent is<br><em>their disclosure?</em></h2>
+  <p>Enter any US public company ticker. We fetch their latest 10-Q filing, run NLP analysis, and score their language for hedging, evasion, and sentiment.</p>
+
+  <div class="search-container">
+    <input type="text" id="tickerInput" placeholder="AAPL" maxlength="5"
+           oninput="this.value = this.value.toUpperCase()">
+    <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">ANALYZE →</button>
+  </div>
+  <div class="status-bar" id="status"></div>
+</div>
+
+<div class="content">
+
+  <div class="result-card" id="resultCard">
+    <div class="card-top">
+      <div class="ticker-display">
+        <div class="ticker-badge" id="tickerBadge">AAPL</div>
+        <div class="ticker-info">
+          <h3 id="cardTitle">Apple Inc.</h3>
+          <p id="cardMeta">10-Q · Q1 2026 · Filed 2026-05-01</p>
+        </div>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge">
+          <svg viewBox="0 0 140 140">
+            <path class="gauge-track"
+                  d="M 20 110 A 50 50 0 1 1 120 110"
+                  stroke-dasharray="188" stroke-dashoffset="0"/>
+            <path class="gauge-fill" id="gaugeFill"
+                  d="M 20 110 A 50 50 0 1 1 120 110"
+                  stroke-dasharray="188" stroke-dashoffset="188"/>
+          </svg>
+          <div class="gauge-score" id="gaugeScore">—</div>
+        </div>
+        <div class="gauge-label">Transparency Score</div>
+        <div class="verdict-chip" id="verdictChip">—</div>
+      </div>
+    </div>
+
+    <div class="metrics-strip">
+      <div class="metric-cell hedge">
+        <div class="metric-num" id="hedgeNum">0</div>
+        <div class="metric-name">Hedge Words</div>
+        <div class="metric-desc">maybe · perhaps · we believe · uncertain</div>
+      </div>
+      <div class="metric-cell passive">
+        <div class="metric-num" id="passiveNum">0</div>
+        <div class="metric-name">Passive Voice</div>
+        <div class="metric-desc">hides accountability and agency</div>
+      </div>
+      <div class="metric-cell sentiment">
+        <div class="metric-num" id="sentimentNum">0.00</div>
+        <div class="metric-name">Sentiment Score</div>
+        <div class="metric-desc">−1.0 negative → +1.0 positive</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card" id="chartCard">
+    <div class="chart-header">
+      <div class="chart-title">Company Comparison — Transparency Score</div>
+      <div class="chart-count" id="chartCount">0 companies analyzed</div>
+    </div>
+    <div class="chart-body">
+      <canvas id="scoreChart" height="80"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const API = 'http://localhost:8080';
+  let chart = null;
+  const results = [];
+
+  async function analyze() {
+    const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+    if (!ticker) return;
+
+    const btn = document.getElementById('analyzeBtn');
+    const status = document.getElementById('status');
+
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btn.textContent = 'FETCHING...';
+
+    status.className = 'status-bar';
+    status.innerHTML = '<div class="status-dot"></div> Fetching SEC EDGAR filing for ' + ticker + '...';
+
+    try {
+      const res = await fetch(`${API}/edgar/analyze/${ticker}`, { method: 'POST' });
+      if (!res.ok) throw new Error(`Server returned ${res.status} — check if ticker is a US public company`);
+      const data = await res.json();
+
+      status.className = 'status-bar success';
+      status.innerHTML = '<div class="status-dot"></div> Analysis complete';
+
+      renderCard(ticker, data);
+      addToChart(ticker, data.transparencyScore);
+    } catch (err) {
+      status.className = 'status-bar error';
+      status.innerHTML = '<div class="status-dot"></div> ' + err.message;
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+      btn.textContent = 'ANALYZE →';
+    }
+  }
+
+  function scoreColor(s) {
+    if (s >= 80) return '#00e5a0';
+    if (s >= 60) return '#ffd166';
+    return '#ff4d6d';
+  }
+
+  function verdictText(s) {
+    if (s >= 80) return 'TRANSPARENT';
+    if (s >= 60) return 'CAUTIOUS';
+    return 'EVASIVE';
+  }
+
+  function renderCard(ticker, data) {
+    const score = data.transparencyScore;
+    const color = scoreColor(score);
+    const ec = data.earningsCall;
+
+    document.getElementById('tickerBadge').textContent = ticker;
+    document.getElementById('cardTitle').textContent = ticker;
+    document.getElementById('cardMeta').textContent =
+            `10-Q · ${ec.quarter} ${ec.year} · Filed ${ec.callDate}`;
+
+    // Gauge
+    const circumference = 188;
+    const offset = circumference - (score / 100) * circumference;
+    const fill = document.getElementById('gaugeFill');
+    fill.style.stroke = color;
+    setTimeout(() => { fill.style.strokeDashoffset = offset; }, 50);
+
+    // Animated counter
+    animateCount('gaugeScore', 0, score, 1000, v => v.toFixed(1), color);
+
+    const chip = document.getElementById('verdictChip');
+    chip.textContent = verdictText(score);
+    chip.style.color = color;
+    chip.style.borderColor = color;
+
+    // Metrics
+    animateCount('hedgeNum', 0, data.hedgeCount, 800, v => Math.round(v), '#ff4d6d');
+    animateCount('passiveNum', 0, data.passiveCount, 800, v => Math.round(v), '#ffd166');
+    animateCount('sentimentNum', 0, data.sentimentCompound, 800, v => v.toFixed(3), '#00e5a0');
+
+    document.getElementById('resultCard').className = 'result-card visible';
+  }
+
+  function animateCount(id, from, to, duration, format, color) {
+    const el = document.getElementById(id);
+    if (color) el.style.color = color;
+    const start = performance.now();
+    function step(now) {
+      const t = Math.min((now - start) / duration, 1);
+      const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+      el.textContent = format(from + (to - from) * ease);
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function addToChart(ticker, score) {
+    const idx = results.findIndex(r => r.ticker === ticker);
+    if (idx >= 0) results[idx].score = score;
+    else results.push({ ticker, score });
+
+    document.getElementById('chartCard').className = 'chart-card visible';
+    document.getElementById('chartCount').textContent =
+            results.length + (results.length === 1 ? ' company' : ' companies') + ' analyzed';
+
+    if (chart) chart.destroy();
+
+    chart = new Chart(document.getElementById('scoreChart'), {
+      type: 'bar',
+      data: {
+        labels: results.map(r => r.ticker),
+        datasets: [{
+          data: results.map(r => r.score),
+          backgroundColor: results.map(r => scoreColor(r.score) + '22'),
+          borderColor: results.map(r => scoreColor(r.score)),
+          borderWidth: 1,
+          borderRadius: 0,
+        }]
+      },
+      options: {
+        animation: { duration: 600 },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#0e1420',
+            borderColor: '#1c2a40',
+            borderWidth: 1,
+            titleFont: { family: 'Space Mono', size: 13 },
+            bodyFont: { family: 'Space Mono', size: 12 },
+            callbacks: {
+              label: ctx => ` Score: ${ctx.parsed.y.toFixed(1)} — ${verdictText(ctx.parsed.y)}`
+            }
+          }
+        },
+        scales: {
+          y: {
+            min: 0, max: 100,
+            grid: { color: '#1c2a40' },
+            border: { color: '#1c2a40' },
+            ticks: {
+              color: '#4a6080',
+              font: { family: 'Space Mono', size: 11 },
+              callback: v => v + '%'
+            }
+          },
+          x: {
+            grid: { display: false },
+            border: { color: '#1c2a40' },
+            ticks: {
+              color: '#e2e8f0',
+              font: { family: 'Space Mono', size: 13, weight: '700' }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  document.getElementById('tickerInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') analyze();
+  });
+</script>
+</body>
+</html>
