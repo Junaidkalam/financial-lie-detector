@@ -12,10 +12,17 @@ public class EdgarService {
     private final CompanyRepository companyRepository;
     private final EarningsCallRepository earningsCallRepository;
 
+    private final TransparencyScoreRepository scoreRepository;
+    private final NlpService nlpService;
+
     public EdgarService(CompanyRepository companyRepository,
-                        EarningsCallRepository earningsCallRepository) {
+                        EarningsCallRepository earningsCallRepository,
+                        TransparencyScoreRepository scoreRepository,
+                        NlpService nlpService) {
         this.companyRepository = companyRepository;
         this.earningsCallRepository = earningsCallRepository;
+        this.scoreRepository = scoreRepository;
+        this.nlpService = nlpService;
 
         this.restTemplate = new RestTemplate();
         this.restTemplate.getInterceptors().add((request, body, execution) -> {
@@ -80,14 +87,9 @@ public class EdgarService {
             throw new RuntimeException("Could not fetch 10-Q text: " + e.getMessage());
         }
     }
-    public TransparencyScore analyzeCompany(String ticker, CompanyRepository companyRepository,
-                                            EarningsCallRepository earningsCallRepository,
-                                            TransparencyScoreRepository scoreRepository,
-                                            NlpService nlpService) {
+    public TransparencyScore analyzeCompany(String ticker) {
         // Step 1: Get or create company
-        Company company = companyRepository.findAll().stream()
-                .filter(c -> c.getTicker().equalsIgnoreCase(ticker))
-                .findFirst()
+        Company company = companyRepository.findByTicker(ticker.toUpperCase())
                 .orElseGet(() -> {
                     Company newCompany = new Company();
                     newCompany.setTicker(ticker.toUpperCase());
@@ -112,8 +114,9 @@ public class EdgarService {
         plainText = plainText.replaceAll("\\s+", " ").trim();
 
         // Skip past XBRL metadata - find where real text starts
+        // Skip past XBRL metadata - find where real text starts
         int startIndex = plainText.indexOf("UNITED STATES");
-        if (startIndex == -1) startIndex = plainText.indexOf("Apple");
+        if (startIndex == -1) startIndex = plainText.indexOf("FORM 10-Q");
         if (startIndex == -1) startIndex = 0;
 
         plainText = plainText.substring(startIndex);
@@ -124,8 +127,17 @@ public class EdgarService {
         // Step 4: Save as EarningsCall
         EarningsCall call = new EarningsCall();
         call.setCompany(company);
-        call.setQuarter("Q1");
-        call.setYear(2026);
+        java.time.LocalDate date = java.time.LocalDate.parse(filingDate);
+        int year = date.getYear();
+        int month = date.getMonthValue();
+        String quarter;
+        if (month <= 3) quarter = "Q1";
+        else if (month <= 6) quarter = "Q2";
+        else if (month <= 9) quarter = "Q3";
+        else quarter = "Q4";
+
+        call.setQuarter(quarter);
+        call.setYear(year);
         call.setCallDate(java.time.LocalDate.parse(filingDate));
         call.setTranscriptText(plainText);
         earningsCallRepository.save(call);

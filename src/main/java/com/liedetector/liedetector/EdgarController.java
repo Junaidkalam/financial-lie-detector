@@ -41,7 +41,6 @@ public class EdgarController {
 
     @PostMapping("/analyze/{ticker}")
     public TransparencyScore analyze(@PathVariable String ticker) {
-        return edgarService.analyzeCompany(ticker, companyRepository,
-                earningsCallRepository, scoreRepository, nlpService);
+        return edgarService.analyzeCompany(ticker);
     }
 }
