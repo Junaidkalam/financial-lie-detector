@@ -80,4 +80,64 @@ public class EdgarService {
             throw new RuntimeException("Could not fetch 10-Q text: " + e.getMessage());
         }
     }
+    public TransparencyScore analyzeCompany(String ticker, CompanyRepository companyRepository,
+                                            EarningsCallRepository earningsCallRepository,
+                                            TransparencyScoreRepository scoreRepository,
+                                            NlpService nlpService) {
+        // Step 1: Get or create company
+        Company company = companyRepository.findAll().stream()
+                .filter(c -> c.getTicker().equalsIgnoreCase(ticker))
+                .findFirst()
+                .orElseGet(() -> {
+                    Company newCompany = new Company();
+                    newCompany.setTicker(ticker.toUpperCase());
+                    newCompany.setName(ticker.toUpperCase());
+                    return companyRepository.save(newCompany);
+                });
+
+        // Step 2: Fetch 10-Q text and filing info
+        String result = getLatestFilingAccession(ticker);
+        String[] parts = result.split("\\|");
+        String filingDate = parts[1];
+        String rawText = fetch10QText(ticker);
+
+        // Step 3: Strip HTML tags to get plain text
+        // Remove script and style blocks entirely
+        // Step 3: Strip HTML tags to get plain text
+        String plainText = rawText.replaceAll("(?s)<script[^>]*>.*?</script>", " ");
+        plainText = plainText.replaceAll("(?s)<style[^>]*>.*?</style>", " ");
+        plainText = plainText.replaceAll("<[^>]*>", " ");
+        plainText = plainText.replaceAll("\\b\\w+:\\w+\\b", " ");
+        plainText = plainText.replaceAll("\\b\\d{10}\\b", " ");
+        plainText = plainText.replaceAll("\\s+", " ").trim();
+
+        // Skip past XBRL metadata - find where real text starts
+        int startIndex = plainText.indexOf("UNITED STATES");
+        if (startIndex == -1) startIndex = plainText.indexOf("Apple");
+        if (startIndex == -1) startIndex = 0;
+
+        plainText = plainText.substring(startIndex);
+        if (plainText.length() > 5000) {
+            plainText = plainText.substring(0, 5000);
+        }
+
+        // Step 4: Save as EarningsCall
+        EarningsCall call = new EarningsCall();
+        call.setCompany(company);
+        call.setQuarter("Q1");
+        call.setYear(2026);
+        call.setCallDate(java.time.LocalDate.parse(filingDate));
+        call.setTranscriptText(plainText);
+        earningsCallRepository.save(call);
+
+        // Step 5: Run NLP analysis
+        var nlpResult = nlpService.analyze(plainText);
+        TransparencyScore score = new TransparencyScore();
+        score.setEarningsCall(call);
+        score.setHedgeCount(((Number) nlpResult.get("hedge_count")).intValue());
+        score.setPassiveCount(((Number) nlpResult.get("passive_count")).intValue());
+        score.setSentimentCompound(((Number) nlpResult.get("sentiment_compound")).doubleValue());
+        score.setTransparencyScore(((Number) nlpResult.get("transparency_score")).doubleValue());
+        return scoreRepository.save(score);
+    }
 }
