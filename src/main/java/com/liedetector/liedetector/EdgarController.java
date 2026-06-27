@@ -21,4 +21,8 @@ public class EdgarController {
     public String getLatestFiling(@PathVariable String ticker) {
         return edgarService.getLatestFilingAccession(ticker);
     }
+    @GetMapping("/filing-text/{ticker}")
+    public String getFilingText(@PathVariable String ticker) {
+        return edgarService.fetch10QText(ticker);
+    }
 }

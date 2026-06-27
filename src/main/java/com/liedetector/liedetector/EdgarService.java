@@ -53,32 +53,31 @@ public class EdgarService {
         List<String> forms = (List<String>) recent.get("form");
         List<String> accessions = (List<String>) recent.get("accessionNumber");
         List<String> dates = (List<String>) recent.get("filingDate");
+        List<String> primaryDocs = (List<String>) recent.get("primaryDocument");
 
         for (int i = 0; i < forms.size(); i++) {
             if ("10-Q".equals(forms.get(i))) {
-                return accessions.get(i).replace("-", "") + "|" + dates.get(i);
+                return accessions.get(i).replace("-", "") + "|" + dates.get(i) + "|" + primaryDocs.get(i);
             }
         }
         throw new RuntimeException("No 10-Q found for ticker: " + ticker);
     }
 
-    public String fetchTranscriptText(String ticker) {
+    public String fetch10QText(String ticker) {
         String result = getLatestFilingAccession(ticker);
         String[] parts = result.split("\\|");
         String accession = parts[0];
+        String primaryDoc = parts[2];
         String cik = getCikFromTicker(ticker);
-
-        String indexUrl = "https://www.sec.gov/Archives/edgar/full-index/" +
-                "https://data.sec.gov/submissions/CIK" + cik + ".json";
+        String cikStripped = cik.replaceFirst("^0+", "");
 
         String docUrl = "https://www.sec.gov/Archives/edgar/data/" +
-                cik.replaceFirst("^0+", "") + "/" + accession + "/" +
-                accession + ".txt";
+                cikStripped + "/" + accession + "/" + primaryDoc;
 
         try {
             return restTemplate.getForObject(docUrl, String.class);
         } catch (Exception e) {
-            throw new RuntimeException("Could not fetch filing text: " + e.getMessage());
+            throw new RuntimeException("Could not fetch 10-Q text: " + e.getMessage());
         }
     }
 }
